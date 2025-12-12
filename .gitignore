@@ -15,3 +15,6 @@ Gemfile.lock
 
 # AI tools
 .claude/
+
+# mise (development tool)
+mise.toml
