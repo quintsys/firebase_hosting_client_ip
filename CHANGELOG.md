@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [0.1.4](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.1.3...v0.1.4) (2025-12-12)
+
+
+### Bug Fixes
+
+* trigger publish workflow after release-please creates release ([#16](https://github.com/quintsys/firebase_hosting_client_ip/issues/16)) ([551ff18](https://github.com/quintsys/firebase_hosting_client_ip/commit/551ff1867ad7d28600fe94876f551015d6294fe3))
+
 ## [0.1.3](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.1.2...v0.1.3) (2025-12-12)
 
 
