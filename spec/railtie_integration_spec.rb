@@ -15,9 +15,11 @@ RSpec.describe FirebaseHostingClientIp::Railtie do
       # Verify the railtie is configured with the correct initializer hook
       railtie_class = FirebaseHostingClientIp::Railtie
 
-      # Check that the railtie exists and can be instantiated
-      expect(railtie_class).to be_a(Class)
-      expect(railtie_class.ancestors).to include(Rails::Railtie)
+      aggregate_failures do
+        # Check that the railtie exists and can be instantiated
+        expect(railtie_class).to be_a(Class)
+        expect(railtie_class.ancestors).to include(Rails::Railtie)
+      end
 
       # The railtie initializer is registered with the correct hook name
       # This would be verified through the Rails initializer registry in a full app
@@ -54,8 +56,10 @@ RSpec.describe FirebaseHostingClientIp::Railtie do
       app = app_class.new
 
       # Verify the app initialized successfully
-      expect(app).to be_a(Rails::Application)
-      expect(app.config).to respond_to(:middleware)
+      aggregate_failures do
+        expect(app).to be_a(Rails::Application)
+        expect(app.config).to respond_to(:middleware)
+      end
     end
   end
 end
