@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [0.2.0](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.1.6...v0.2.0) (2025-12-12)
+
+
+### Features
+
+* add Rails 8 support ([#26](https://github.com/quintsys/firebase_hosting_client_ip/issues/26)) ([b65d462](https://github.com/quintsys/firebase_hosting_client_ip/commit/b65d4624a3e0a8a185fa0aeabaca581f10fdc7c1))
+
 ## [0.1.6](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.1.5...v0.1.6) (2025-12-12)
 
 
