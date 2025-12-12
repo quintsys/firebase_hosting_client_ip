@@ -132,8 +132,10 @@ RSpec.describe FirebaseHostingClientIp::Middleware do
         "REMOTE_ADDR" => nil,
         "HTTP_FASTLY_CLIENT_IP" => "203.0.113.1"
       }
-      expect { call_middleware(env) }.not_to raise_error
-      expect(env["REMOTE_ADDR"]).to eq("203.0.113.1")
+      aggregate_failures do
+        expect { call_middleware(env) }.not_to raise_error
+        expect(env["REMOTE_ADDR"]).to eq("203.0.113.1")
+      end
     end
   end
 
@@ -180,10 +182,12 @@ RSpec.describe FirebaseHostingClientIp::Middleware do
       }
       call_middleware(env)
 
-      expect(env["HTTP_HOST"]).to eq("example.com")
-      expect(env["HTTP_USER_AGENT"]).to eq("Test Agent")
-      expect(env["REQUEST_METHOD"]).to eq("POST")
-      expect(env["PATH_INFO"]).to eq("/api")
+      aggregate_failures do
+        expect(env["HTTP_HOST"]).to eq("example.com")
+        expect(env["HTTP_USER_AGENT"]).to eq("Test Agent")
+        expect(env["REQUEST_METHOD"]).to eq("POST")
+        expect(env["PATH_INFO"]).to eq("/api")
+      end
     end
   end
 
