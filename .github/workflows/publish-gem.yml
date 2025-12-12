@@ -4,7 +4,7 @@ name: Publish Gem
 on:
   release:
     types:
-      - created
+      - published
   workflow_dispatch:
     inputs:
       tag:
@@ -29,9 +29,19 @@ jobs:
         with:
           ruby-version: '3.2'
           bundler-cache: true
+      - name: Get OIDC token
+        uses: actions/github-script@v7
+        id: oidc
+        with:
+          script: |
+            const token = await core.getIDToken('https://rubygems.org');
+            core.setOutput('token', token);
       - name: Build and publish gem
         run: |
           gem build firebase_hosting_client_ip.gemspec
-          gem push firebase_hosting_client_ip-*.gem
-        env:
-          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+          GEM_FILE=$(ls firebase_hosting_client_ip-*.gem)
+          curl -X POST \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @$GEM_FILE \
+            https://rubygems.org/api/v1/gems
