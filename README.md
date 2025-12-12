@@ -57,6 +57,13 @@ And then execute:
 bundle install
 ```
 
+## Requirements
+
+- Ruby >= 3.2.0
+- Rails >= 7.0 (Rails 7, Rails 8, and future versions are supported)
+
+The gem automatically works with whatever Rails version is specified in your application's Gemfile.
+
 ## Usage
 
 The middleware is automatically loaded when Rails is detected. No additional configuration is required.
