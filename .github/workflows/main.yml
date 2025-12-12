@@ -41,7 +41,7 @@ jobs:
       - name: Install dependencies
         run: |
           bundle config set --local without 'development'
-          bundle update rails --conservative --version "~> ${{ matrix.rails }}.0"
+          bundle add rails --version "~> ${{ matrix.rails }}.0"
           bundle install
       - name: Run RSpec tests
         run: bundle exec rspec
