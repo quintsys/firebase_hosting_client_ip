@@ -1,6 +1,5 @@
 ---
 name: Publish Gem
-
 on:
   release:
     types:
@@ -8,14 +7,12 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag to publish'
+        description: Release tag to publish
         required: true
         type: string
-
 permissions:
   contents: read
   id-token: write
-
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -37,7 +34,7 @@ jobs:
             const token = await core.getIDToken('https://rubygems.org');
             core.setOutput('token', token);
       - name: Build and publish gem
-        run: |
+        run: |-
           gem build firebase_hosting_client_ip.gemspec
           GEM_FILE=$(ls firebase_hosting_client_ip-*.gem)
           curl -X POST \
