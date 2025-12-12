@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [0.1.3](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.1.2...v0.1.3) (2025-12-12)
+
+
+### Bug Fixes
+
+* use published event and OIDC auth for gem publishing ([#13](https://github.com/quintsys/firebase_hosting_client_ip/issues/13)) ([a1a9472](https://github.com/quintsys/firebase_hosting_client_ip/commit/a1a9472637302d6a655e864e9e530931c24bc1dd))
+
 ## [0.1.2](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.1.1...v0.1.2) (2025-12-12)
 
 
