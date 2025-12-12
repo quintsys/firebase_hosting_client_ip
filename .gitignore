@@ -6,6 +6,7 @@
 /pkg/
 /spec/reports/
 /tmp/
+.env
 
 # Gemfile.lock - gems should not commit lock files
 Gemfile.lock
