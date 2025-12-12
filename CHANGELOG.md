@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [0.1.6](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.1.5...v0.1.6) (2025-12-12)
+
+
+### Bug Fixes
+
+* remove double trigger and install dependencies for release-gem ([#21](https://github.com/quintsys/firebase_hosting_client_ip/issues/21)) ([01aa104](https://github.com/quintsys/firebase_hosting_client_ip/commit/01aa104633df849f0ade5d89e94b3ad010e47434))
+
 ## [0.1.5](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.1.4...v0.1.5) (2025-12-12)
 
 
