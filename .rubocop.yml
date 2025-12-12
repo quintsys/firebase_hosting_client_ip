@@ -3,8 +3,6 @@ AllCops:
   TargetRubyVersion: 3.2
   NewCops: enable
   SuggestExtensions: false
-  Exclude:
-    - spec/**/*
 
 Style/StringLiterals:
   Enabled: true
@@ -24,5 +22,6 @@ Metrics/CyclomaticComplexity:
 Metrics/BlockLength:
   Enabled: true
   Exclude:
-    - spec/**/*
     - "*.gemspec"
+  AllowedPatterns:
+    - "^describe"

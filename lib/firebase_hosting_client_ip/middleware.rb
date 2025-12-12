@@ -25,22 +25,24 @@ module FirebaseHostingClientIp
       # 2. Left-most value from HTTP_X_FORWARDED_FOR (if present and not empty)
       # 3. Fallback to REMOTE_ADDR (already processed by ActionDispatch::RemoteIp)
 
-      # Check for Fastly header
+      extract_fastly_ip(env) || extract_forwarded_for_ip(env) || env["REMOTE_ADDR"]
+    end
+
+    def extract_fastly_ip(env)
       fastly_ip = env["HTTP_FASTLY_CLIENT_IP"]
-      return fastly_ip if fastly_ip && !fastly_ip.empty?
+      fastly_ip = fastly_ip.strip if fastly_ip
+      fastly_ip if fastly_ip&.length&.positive?
+    end
 
-      # Check for X-Forwarded-For header and extract the left-most IP
+    def extract_forwarded_for_ip(env)
       x_forwarded_for = env["HTTP_X_FORWARDED_FOR"]
-      if x_forwarded_for && !x_forwarded_for.empty?
-        # X-Forwarded-For can contain multiple IPs separated by commas
-        # The left-most (first) IP is the original client IP
-        ips = x_forwarded_for.split(",").map(&:strip)
-        first_ip = ips.first
-        return first_ip if first_ip && !first_ip.empty?
-      end
+      return nil unless x_forwarded_for&.length&.positive?
 
-      # Fallback to REMOTE_ADDR (which may have been set by ActionDispatch::RemoteIp)
-      env["REMOTE_ADDR"]
+      # X-Forwarded-For can contain multiple IPs separated by commas
+      # The left-most (first) IP is the original client IP
+      ips = x_forwarded_for.split(",").map(&:strip)
+      first_ip = ips.first
+      first_ip if first_ip&.length&.positive?
     end
   end
 end

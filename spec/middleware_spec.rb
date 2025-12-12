@@ -77,6 +77,17 @@ RSpec.describe FirebaseHostingClientIp::Middleware do
       call_middleware(env)
       expect(env["REMOTE_ADDR"]).to eq("203.0.113.1")
     end
+
+    it "handles HTTP_FASTLY_CLIENT_IP with whitespace" do
+      env = {
+        "REQUEST_METHOD" => "GET",
+        "PATH_INFO" => "/",
+        "REMOTE_ADDR" => "127.0.0.1",
+        "HTTP_FASTLY_CLIENT_IP" => "  203.0.113.1  "
+      }
+      call_middleware(env)
+      expect(env["REMOTE_ADDR"]).to eq("203.0.113.1")
+    end
   end
 
   describe "edge cases" do
