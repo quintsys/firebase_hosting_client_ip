@@ -1,0 +1,27 @@
+---
+AllCops:
+  TargetRubyVersion: 3.2
+  NewCops: enable
+  SuggestExtensions: false
+
+Style/StringLiterals:
+  Enabled: true
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  Enabled: true
+  EnforcedStyle: double_quotes
+
+Style/Documentation:
+  Enabled: false
+
+Metrics/CyclomaticComplexity:
+  Enabled: true
+  Max: 8
+
+Metrics/BlockLength:
+  Enabled: true
+  Exclude:
+    - "*.gemspec"
+  AllowedPatterns:
+    - "^describe"

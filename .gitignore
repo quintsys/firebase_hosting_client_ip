@@ -1,0 +1,20 @@
+/.bundle/
+/.yardoc
+/_yardoc/
+/coverage/
+/doc/
+/pkg/
+/spec/reports/
+/tmp/
+
+# Gemfile.lock - gems should not commit lock files
+Gemfile.lock
+
+# rspec failure tracking
+.rspec_status
+
+# AI tools
+.claude/
+
+# mise (development tool)
+mise.toml
