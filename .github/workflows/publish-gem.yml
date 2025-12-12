@@ -16,6 +16,8 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    env:
+      BUNDLE_WITHOUT: 'development'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,9 +28,5 @@ jobs:
         with:
           ruby-version: '3.2'
           bundler-cache: true
-      - name: Install dependencies
-        run: |
-          bundle config set --local without 'development'
-          bundle install
       - name: Release gem
         uses: rubygems/release-gem@v1
