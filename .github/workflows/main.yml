@@ -11,7 +11,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    name: Ruby ${{ matrix.ruby }} / Rails ${{ matrix.rails }}
+    name: Ruby ${{ matrix.ruby }}
     timeout-minutes: 10
     strategy:
       matrix:
@@ -19,15 +19,6 @@ jobs:
           - '3.2'
           - '3.3'
           - '3.4'
-        rails:
-          - '7.0'
-          - '7.1'
-          - '7.2'
-        exclude:
-          - ruby: '3.2'
-            rails: '7.2'
-          - ruby: '3.4'
-            rails: '7.0'
 
     steps:
       - uses: actions/checkout@v4
@@ -41,7 +32,6 @@ jobs:
       - name: Install dependencies
         run: |
           bundle config set --local without 'development'
-          bundle add rails --version "~> ${{ matrix.rails }}.0"
           bundle install
       - name: Run RSpec tests
         run: bundle exec rspec
