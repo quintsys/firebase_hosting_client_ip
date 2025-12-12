@@ -19,7 +19,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          token: ${{ secrets.GH_PAT }}
       - uses: googleapis/release-please-action@v4
         id: release
         with:
