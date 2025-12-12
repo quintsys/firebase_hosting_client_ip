@@ -1,4 +1,5 @@
 {
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "packages": {
     ".": {
       "release-type": "ruby",
@@ -7,6 +8,5 @@
       "bump-minor-pre-major": false,
       "bump-patch-for-minor-pre-major": false
     }
-  },
-  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json"
+  }
 }
