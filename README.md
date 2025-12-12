@@ -69,7 +69,7 @@ After the middleware processes a request, `request.remote_ip` will return the no
 
 1. `HTTP_FASTLY_CLIENT_IP` header (if present and not empty)
 2. Left-most value from `HTTP_X_FORWARDED_FOR` header (if present and not empty)
-3. `REMOTE_ADDR` (fallback to the value already processed by `ActionDispatch::RemoteIp`)
+3. `REMOTE_ADDR` (the direct connection address)
 
 ### Example
 
