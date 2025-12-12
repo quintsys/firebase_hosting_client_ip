@@ -10,6 +10,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 jobs:
   release-please:
@@ -23,3 +24,20 @@ jobs:
         with:
           config-file: .release-please-config.json
           manifest-file: .release-please-manifest.json
+      - name: Trigger publish workflow
+        if: steps.release.outputs.release_created
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = '${{ steps.release.outputs.tag_name }}';
+            if (tag) {
+              await github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'publish-gem.yml',
+                ref: 'master',
+                inputs: {
+                  tag: tag
+                }
+              });
+            }
