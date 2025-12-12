@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+## [0.1.5](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.1.4...v0.1.5) (2025-12-12)
+
+
+### Bug Fixes
+
+* use official rubygems/release-gem action for publishing ([#18](https://github.com/quintsys/firebase_hosting_client_ip/issues/18)) ([4532dac](https://github.com/quintsys/firebase_hosting_client_ip/commit/4532dacfb193ae0aa553366468e9f1448cb5cc5f))
+* use PAT instead of GITHUB_TOKEN for release-please ([#20](https://github.com/quintsys/firebase_hosting_client_ip/issues/20)) ([c87d8e6](https://github.com/quintsys/firebase_hosting_client_ip/commit/c87d8e623ea4ddb75b39ba20a8a9ffa4a9865be6))
+
 ## [0.1.4](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.1.3...v0.1.4) (2025-12-12)
 
 
