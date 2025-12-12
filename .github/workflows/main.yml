@@ -1,22 +1,21 @@
-name: Ruby
-
+---
+name: CI
 on:
   push:
     branches:
       - master
-
   pull_request:
-
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     name: Ruby ${{ matrix.ruby }}
     timeout-minutes: 10
     strategy:
       matrix:
         ruby:
-          - '3.4.7'
-
+          - '3.2'
+          - '3.3'
+          - '3.4'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,5 +25,11 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
-      - name: Run the default task
-        run: bundle exec rake
+      - name: Install dependencies
+        run: |
+          bundle config set --local without 'development'
+          bundle install
+      - name: Run RSpec tests
+        run: bundle exec rspec
+      - name: Run RuboCop
+        run: bundle exec rubocop
