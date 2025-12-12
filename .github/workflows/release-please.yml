@@ -25,20 +25,3 @@ jobs:
           config-file: .release-please-config.json
           manifest-file: .release-please-manifest.json
           token: ${{ secrets.GH_PAT }}
-      - name: Trigger publish workflow
-        if: steps.release.outputs.release_created
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const tag = '${{ steps.release.outputs.tag_name }}';
-            if (tag) {
-              await github.rest.actions.createWorkflowDispatch({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                workflow_id: 'publish-gem.yml',
-                ref: 'master',
-                inputs: {
-                  tag: tag
-                }
-              });
-            }
