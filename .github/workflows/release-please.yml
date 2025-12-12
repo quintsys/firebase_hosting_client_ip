@@ -23,35 +23,3 @@ jobs:
         with:
           config-file: .release-please-config.json
           manifest-file: .release-please-manifest.json
-
----
-name: Publish Gem
-
-on:
-  release:
-    types:
-      - created
-
-permissions:
-  contents: read
-
-jobs:
-  publish:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.release.tag_name }}
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2'
-          bundler-cache: true
-      - name: Build and publish gem
-        run: |
-          gem build firebase_hosting_client_ip.gemspec
-          gem push firebase_hosting_client_ip-*.gem
-        env:
-          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
-      - name: Cleanup gem files
-        run: rm -f firebase_hosting_client_ip-*.gem

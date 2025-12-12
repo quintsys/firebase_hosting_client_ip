@@ -1,0 +1,31 @@
+---
+name: Publish Gem
+
+on:
+  release:
+    types:
+      - created
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          persist-credentials: false
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+      - name: Publish to RubyGems
+        uses: rubygems/gem-push-action@v1
+        with:
+          gem-file: firebase_hosting_client_ip.gemspec
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          rubygems-api-key: ${{ secrets.RUBYGEMS_API_KEY }}
