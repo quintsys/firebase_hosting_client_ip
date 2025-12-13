@@ -27,6 +27,8 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2'
-          bundler-cache: true
+          bundler-cache: false
+      - name: Install dependencies without development
+        run: bundle install --without development
       - name: Release gem
         uses: rubygems/release-gem@v1
