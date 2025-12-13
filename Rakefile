@@ -2,20 +2,22 @@
 
 require "bundler/gem_tasks"
 
-begin
-  require "rspec/core/rake_task"
-  RSpec::Core::RakeTask.new(:spec)
-rescue LoadError
-  # RSpec is in development group, may not be available when BUNDLE_WITHOUT: development
-end
-
-begin
-  require "rubocop/rake_task"
-  RuboCop::RakeTask.new do |task|
-    task.options = ["--config", ".rubocop.yml"]
+unless ENV["BUNDLE_WITHOUT"]&.include?("development")
+  begin
+    require "rspec/core/rake_task"
+    RSpec::Core::RakeTask.new(:spec)
+  rescue LoadError
+    # RSpec is in development group, may not be available
   end
-rescue LoadError
-  # RuboCop is in development group, may not be available when BUNDLE_WITHOUT: development
+
+  begin
+    require "rubocop/rake_task"
+    RuboCop::RakeTask.new do |task|
+      task.options = ["--config", ".rubocop.yml"]
+    end
+  rescue LoadError
+    # RuboCop is in development group, may not be available
+  end
 end
 
 default_tasks = []
