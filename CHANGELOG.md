@@ -1,5 +1,28 @@
 ## [Unreleased]
 
+## [0.3.0](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.2.2...v0.3.0) (2025-12-13)
+
+
+### Features
+
+* add Rails 8 support ([#26](https://github.com/quintsys/firebase_hosting_client_ip/issues/26)) ([b65d462](https://github.com/quintsys/firebase_hosting_client_ip/commit/b65d4624a3e0a8a185fa0aeabaca581f10fdc7c1))
+
+
+### Bug Fixes
+
+* add explicit permissions to CI workflow ([#12](https://github.com/quintsys/firebase_hosting_client_ip/issues/12)) ([0cd88a1](https://github.com/quintsys/firebase_hosting_client_ip/commit/0cd88a135ed01aeb4e9bf122c6e864f75d647565))
+* add workflow_dispatch to publish-gem workflow ([3da9e8f](https://github.com/quintsys/firebase_hosting_client_ip/commit/3da9e8f933d132bd50b758dc20570e8fdd6299f8))
+* exclude development and test groups in publish workflow ([#34](https://github.com/quintsys/firebase_hosting_client_ip/issues/34)) ([323a631](https://github.com/quintsys/firebase_hosting_client_ip/commit/323a63136691054ac24e4067664b8bdf2cfbfb8f))
+* make Rakefile conditional to avoid requiring dev dependencies ([#32](https://github.com/quintsys/firebase_hosting_client_ip/issues/32)) ([86c6b3e](https://github.com/quintsys/firebase_hosting_client_ip/commit/86c6b3ee025c6b4395a4447cf1f090503a989bb7))
+* move Rails to development group to exclude from publishing ([#28](https://github.com/quintsys/firebase_hosting_client_ip/issues/28)) ([3e66e2c](https://github.com/quintsys/firebase_hosting_client_ip/commit/3e66e2c17a49c4b564018844163f046637224688))
+* remove double trigger and install dependencies for release-gem ([#21](https://github.com/quintsys/firebase_hosting_client_ip/issues/21)) ([01aa104](https://github.com/quintsys/firebase_hosting_client_ip/commit/01aa104633df849f0ade5d89e94b3ad010e47434))
+* replace non-existent gem-push-action with standard gem commands ([#11](https://github.com/quintsys/firebase_hosting_client_ip/issues/11)) ([0bf888a](https://github.com/quintsys/firebase_hosting_client_ip/commit/0bf888a3f9a5e2d6ce15accc1b4f422bda0d711f))
+* trigger publish workflow after release-please creates release ([#16](https://github.com/quintsys/firebase_hosting_client_ip/issues/16)) ([551ff18](https://github.com/quintsys/firebase_hosting_client_ip/commit/551ff1867ad7d28600fe94876f551015d6294fe3))
+* update release-please action to non-deprecated version ([#8](https://github.com/quintsys/firebase_hosting_client_ip/issues/8)) ([1463650](https://github.com/quintsys/firebase_hosting_client_ip/commit/14636502355a7a387c561ca38c9fb64f00aa0265))
+* use official rubygems/release-gem action for publishing ([#18](https://github.com/quintsys/firebase_hosting_client_ip/issues/18)) ([4532dac](https://github.com/quintsys/firebase_hosting_client_ip/commit/4532dacfb193ae0aa553366468e9f1448cb5cc5f))
+* use PAT instead of GITHUB_TOKEN for release-please ([#20](https://github.com/quintsys/firebase_hosting_client_ip/issues/20)) ([c87d8e6](https://github.com/quintsys/firebase_hosting_client_ip/commit/c87d8e623ea4ddb75b39ba20a8a9ffa4a9865be6))
+* use published event and OIDC auth for gem publishing ([#13](https://github.com/quintsys/firebase_hosting_client_ip/issues/13)) ([a1a9472](https://github.com/quintsys/firebase_hosting_client_ip/commit/a1a9472637302d6a655e864e9e530931c24bc1dd))
+
 ## [0.2.2](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.2.1...v0.2.2) (2025-12-13)
 
 
