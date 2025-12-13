@@ -9,8 +9,10 @@ gem "irb"
 gem "rake", "~> 13.0"
 
 gem "rack", "~> 3.0"
-gem "rails", ">= 7.0"
-gem "rspec", "~> 3.0"
 
-gem "rubocop", "~> 1.21"
-gem "rubocop-rspec", "~> 2.0"
+group :development, :test do
+  gem "rails", ">= 7.0"
+  gem "rspec", "~> 3.0"
+  gem "rubocop", "~> 1.21"
+  gem "rubocop-rspec", "~> 2.0"
+end
