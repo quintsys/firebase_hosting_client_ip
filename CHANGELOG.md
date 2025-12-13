@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [0.2.2](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.2.1...v0.2.2) (2025-12-13)
+
+
+### Bug Fixes
+
+* make Rakefile conditional to avoid requiring dev dependencies ([#32](https://github.com/quintsys/firebase_hosting_client_ip/issues/32)) ([86c6b3e](https://github.com/quintsys/firebase_hosting_client_ip/commit/86c6b3ee025c6b4395a4447cf1f090503a989bb7))
+
 ## [0.2.1](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.2.0...v0.2.1) (2025-12-13)
 
 
