@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [0.2.1](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.2.0...v0.2.1) (2025-12-13)
+
+
+### Bug Fixes
+
+* move Rails to development group to exclude from publishing ([#28](https://github.com/quintsys/firebase_hosting_client_ip/issues/28)) ([3e66e2c](https://github.com/quintsys/firebase_hosting_client_ip/commit/3e66e2c17a49c4b564018844163f046637224688))
+
 ## [0.2.0](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.1.6...v0.2.0) (2025-12-12)
 
 
