@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [0.3.1](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.3.0...v0.3.1) (2025-12-23)
+
+
+### Bug Fixes
+
+* remove duplicate entries from v0.3.0 CHANGELOG ([#35](https://github.com/quintsys/firebase_hosting_client_ip/issues/35)) ([656e2fd](https://github.com/quintsys/firebase_hosting_client_ip/commit/656e2fd83589de619d514920464dd6d1ead1bcc3))
+
 ## [0.3.0](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.2.2...v0.3.0) (2025-12-13)
 
 
