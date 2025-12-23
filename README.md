@@ -1,5 +1,7 @@
 # FirebaseHostingClientIp
 
+[![Gem Version](https://badge.fury.io/rb/firebase_hosting_client_ip.svg)](https://badge.fury.io/rb/firebase_hosting_client_ip)
+
 A Rails middleware gem that normalizes client IP addresses when your Rails application is deployed behind Firebase Hosting.
 
 ## Problem
