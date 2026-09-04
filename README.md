@@ -143,6 +143,33 @@ env["action_dispatch.remote_ip"].to_s
 
 **IPv6.** Fastly reports the client's real address, which is frequently IPv6. The gem passes it through untouched. If your application matches against IPv4-only data — allowlists, geo databases, existing audit records — deciding what to do about that is application policy, not something a middleware should guess at.
 
+## Alternative: teach Rails to skip Google's ranges
+
+You may not need this gem. Rails already knows how to walk `X-Forwarded-For` — it just doesn't recognize Google's front end as a proxy. Tell it, and it finds the client on its own:
+
+```ruby
+# config/application.rb
+config.action_dispatch.trusted_proxies =
+  ActionDispatch::RemoteIp::TRUSTED_PROXIES + google_ranges
+```
+
+Google publishes the ranges as machine-readable JSON, refreshed daily:
+
+| File | Contents |
+|---|---|
+| `https://www.gstatic.com/ipranges/goog.json` | all Google ranges (~145 prefixes) |
+| `https://www.gstatic.com/ipranges/cloud.json` | Google Cloud only (~1100 prefixes) |
+
+Each entry is an `ipv4Prefix` or `ipv6Prefix` you can map to `IPAddr`. Verified: with `X-Forwarded-For: 203.0.113.99, 34.96.0.1`, stock Rails returns `34.96.0.1`; adding the front-end range to `trusted_proxies` makes it return `203.0.113.99`.
+
+Three things to weigh before choosing it:
+
+- **It assumes the client is in `X-Forwarded-For` at all.** Whether Firebase Hosting preserves the original client there — rather than only the hop it received — is undocumented. Test your own deployment before depending on it; if the client is absent from the header, no amount of range filtering recovers it.
+- **Trust the narrowest range you can.** Trusting all of `cloud.json` means trusting every Google Cloud customer. Anyone with a GCP VM can then send a request with a forged `X-Forwarded-For`, have their own (trusted) address appended behind it, and be attributed the value they chose. Trusting only the specific front-end ranges avoids that.
+- **The ranges move.** Vendoring the list means it goes stale; fetching it at boot makes startup depend on a network call. Either is a maintenance cost this gem does not have.
+
+The trade is roughly: this gem reads one header and is done, but depends on Fastly setting it; the `trusted_proxies` route uses only stock Rails, but depends on the client surviving in `X-Forwarded-For` and on you keeping a range list current. Neither is more resistant to spoofing than the other — both read a client-settable header.
+
 ## Upgrading from 0.x
 
 Breaking changes in 1.0:
