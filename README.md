@@ -116,14 +116,14 @@ Two separate attacks matter, and blocking one does not block the other:
 1. **Direct requests to the origin.** Anyone who can reach your Cloud Run service without going through Firebase Hosting can set `Fastly-Client-IP` to anything. Restrict ingress (internal + load balancer only) so this is not possible. This gem cannot help with it — lock down ingress.
 2. **Requests through Firebase Hosting carrying a forged header.** By Fastly's own documentation, `Fastly-Client-IP` is *not* protected by default: "if a client sets this header themselves, we will use it." Fastly documents a one-line VCL guard that overwrites it with the observed client address, but whether a given customer applies it is that customer's edge configuration, which you do not control or see.
 
-**On Firebase Hosting, this appears to be handled — but by inference, not by any documented guarantee.** Tested against a live Firebase-fronted Cloud Run app:
+**On Firebase Hosting, the edge overwrites a forged header — observed directly, though still not a documented guarantee.** Tested against a live Firebase-fronted Cloud Run app, by reading the header that arrived at the origin (not just the resolved value):
 
 ```bash
 curl -H 'Fastly-Client-IP: 192.0.2.123' -H 'X-Forwarded-For: 203.0.113.55' \
-     https://your-app.example.com/some-logged-endpoint
+     https://your-app.example.com/some-endpoint-that-echoes-headers
 ```
 
-The application resolved the request to the *real* client address, not either forged value — so the forged `Fastly-Client-IP` did not survive the edge. That is consistent with Firebase applying Fastly's suggested guard:
+The `Fastly-Client-IP` that reached the origin was the caller's **real** address, not the forged `192.0.2.123`. The forged `X-Forwarded-For` did survive into Fastly's own `Fastly-Temp-Xff` header — so the edge *saw* it — but `Fastly-Client-IP` is derived from the connection Fastly observed (`client.ip`), not from any client-supplied header, so the forgery could not reach it. This is Fastly's documented guard in effect:
 
 ```vcl
 if (fastly.ff.visits_this_service == 0 && req.restarts == 0) {
@@ -131,7 +131,9 @@ if (fastly.ff.visits_this_service == 0 && req.restarts == 0) {
 }
 ```
 
-But it is an inference from one deployment's behavior, not a contract. It is undocumented, outside your control, and could change without notice. Treat the CDN sanitization as defense-in-depth, not as the thing your security rests on — **verify it against your own deployment, and re-verify periodically** by checking that the resolved IP is your real address rather than the forged one.
+That property — computed from the observed connection rather than a forwarded header — is what makes `Fastly-Client-IP` more resistant to spoofing than `X-Forwarded-For` on this path.
+
+Two caveats remain. It is one deployment's behavior, undocumented by Firebase and outside your control, so it could change without notice. And it says nothing about attack 1 — a request that reaches the origin directly never passes through the edge that sets this header. Treat the CDN sanitization as defense-in-depth, not as the thing your security rests on: lock down ingress, **verify against your own deployment, and re-verify periodically** by confirming the `Fastly-Client-IP` that arrives is the caller's real address rather than a forged one.
 
 ### Choose based on what you use the IP for
 
