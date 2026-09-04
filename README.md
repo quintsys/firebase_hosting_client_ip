@@ -113,25 +113,32 @@ These are all treated as if the header were missing:
 
 Two separate attacks matter, and blocking one does not block the other:
 
-1. **Direct requests to the origin.** Anyone who can reach your Cloud Run service without going through Firebase Hosting can set `Fastly-Client-IP` to anything. Restrict ingress (internal + load balancer only) so this is not possible.
-2. **Requests through Firebase Hosting carrying a forged header.** Whether the CDN overwrites a client-supplied `Fastly-Client-IP` or forwards it unchanged is not documented by Firebase, and Fastly's own behavior for this header depends on edge configuration you do not control. **Locking down origin ingress does not protect you here** — the forged header travels the trusted path.
+1. **Direct requests to the origin.** Anyone who can reach your Cloud Run service without going through Firebase Hosting can set `Fastly-Client-IP` to anything. Restrict ingress (internal + load balancer only) so this is not possible. This gem cannot help with it — lock down ingress.
+2. **Requests through Firebase Hosting carrying a forged header.** By Fastly's own documentation, `Fastly-Client-IP` is *not* protected by default: "if a client sets this header themselves, we will use it." Fastly documents a one-line VCL guard that overwrites it with the observed client address, but whether a given customer applies it is that customer's edge configuration, which you do not control or see.
 
-Verify the second one against your own deployment before relying on this for anything protective:
+**On Firebase Hosting, this appears to be handled — but by inference, not by any documented guarantee.** Tested against a live Firebase-fronted Cloud Run app:
 
 ```bash
-curl -H 'Fastly-Client-IP: 192.0.2.123' https://your-app.example.com/some-endpoint
+curl -H 'Fastly-Client-IP: 192.0.2.123' -H 'X-Forwarded-For: 203.0.113.55' \
+     https://your-app.example.com/some-logged-endpoint
 ```
 
-Then check what `request.remote_ip` recorded. If it is `192.0.2.123`, the header is client-spoofable through the CDN on your setup.
+The application resolved the request to the *real* client address, not either forged value — so the forged `Fastly-Client-IP` did not survive the edge. That is consistent with Firebase applying Fastly's suggested guard:
+
+```vcl
+if (fastly.ff.visits_this_service == 0 && req.restarts == 0) {
+  set req.http.Fastly-Client-IP = client.ip;
+}
+```
+
+But it is an inference from one deployment's behavior, not a contract. It is undocumented, outside your control, and could change without notice. Treat the CDN sanitization as defense-in-depth, not as the thing your security rests on — **verify it against your own deployment, and re-verify periodically** by checking that the resolved IP is your real address rather than the forged one.
 
 ### Choose based on what you use the IP for
 
-| Use | Spoofable header acceptable? |
-|---|---|
-| Logging, analytics, geolocation, personalization | **Yes.** A wrong IP in a subset of requests is better than a Google address in all of them. |
-| IP allowlists, rate limiting, fraud signals, audit records used as evidence | **No.** An attacker chooses the value, which means they choose the allowlist entry they match or the bucket they exhaust. |
+- **Logging, analytics, geolocation, personalization** — safe to use as-is. Even in the worst case (the edge does not sanitize the header), a wrong IP in a subset of requests beats a Google address in all of them.
+- **IP allowlists, rate limiting, fraud signals, audit records used as evidence** — safe *only* when both hold: origin ingress is locked down (attack 1), and you have verified the edge overwrites a forged `Fastly-Client-IP` (attack 2). If you cannot confirm both, an attacker who can forge the header chooses the allowlist entry they match or the bucket they exhaust.
 
-The gem reports the best available answer; it cannot make that answer trustworthy. `missing_header_fallback` does not help here either — a forged header is *present and valid*, so it never reaches the fallback path.
+Note that `missing_header_fallback` gives no protection here: a forged header is *present and valid*, so it never reaches the fallback path. The gem reports the best available answer; the trustworthiness of that answer comes from the edge, not from the gem.
 
 ## What this gem does not cover
 
