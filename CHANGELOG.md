@@ -1,5 +1,16 @@
 ## [Unreleased]
 
+## [1.0.0](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.3.1...v1.0.0) (2026-09-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* REMOTE_ADDR is no longer overwritten; read the client IP from request.remote_ip rather than request.ip or REMOTE_ADDR. The X-Forwarded-For fallback has been removed -- when Fastly-Client-IP is absent, request.remote_ip returns Rails' own value or the configured sentinel.
+
+### Features
+
+* trust only Fastly-Client-IP and stop rewriting REMOTE_ADDR ([#44](https://github.com/quintsys/firebase_hosting_client_ip/issues/44)) ([ad1c5ce](https://github.com/quintsys/firebase_hosting_client_ip/commit/ad1c5ceea4fbcf3b08fe524a9723fe77738f4861))
+
 ## [0.3.1](https://github.com/quintsys/firebase_hosting_client_ip/compare/v0.3.0...v0.3.1) (2025-12-23)
 
 
