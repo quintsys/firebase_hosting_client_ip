@@ -6,10 +6,41 @@ Rails middleware that makes `request.remote_ip` return the real client IP when y
 
 ## Problem
 
-Firebase Hosting fronts your application with Fastly (undocumented, not configurable — every Firebase Hosting site gets it). When the origin is Cloud Run, the request reaches your container through Google's front end, and the values Rails derives on its own are wrong:
+Firebase Hosting fronts your application with Fastly (undocumented, not configurable — every Firebase Hosting site gets it). When the origin is Cloud Run, nothing your application sees at the socket belongs to the client: every hop in front of it is Google infrastructure, and each one looks like a legitimate caller.
 
-- `REMOTE_ADDR` is the address of the proxy that connected to your container, not the client.
-- `X-Forwarded-For` has Google's front-end address appended. Rails walks that header right-to-left discarding *trusted* proxies, but a Google front-end address is public and appears in no trusted-proxy list — so `request.remote_ip` stops there and reports it as the client.
+```mermaid
+flowchart TB
+    client["👤 Client<br/>203.0.113.99"]
+    fastly["Firebase Hosting<br/>Fastly edge"]
+    gfe["Google Front End<br/>34.96.0.1"]
+    rails["Cloud Run container<br/>Rails app"]
+
+    client -- "connects" --> fastly
+    fastly -- "sets Fastly-Client-IP: 203.0.113.99" --> gfe
+    gfe -- "appends itself to X-Forwarded-For" --> rails
+
+    rails --> arrives
+
+    subgraph arrives["What arrives at Rails"]
+        direction LR
+        a1["REMOTE_ADDR &nbsp; 169.254.1.1 &nbsp; — the peer that connected"]
+        a2["X-Forwarded-For &nbsp; 203.0.113.99, 34.96.0.1"]
+        a3["Fastly-Client-IP &nbsp; 203.0.113.99 &nbsp; — the actual client"]
+    end
+
+    arrives --> stock
+    arrives --> gem
+
+    stock["❌ Stock Rails<br/>request.remote_ip → 34.96.0.1<br/>a Google address, not your user"]
+    gem["✅ With this gem<br/>request.remote_ip → 203.0.113.99"]
+
+    classDef bad fill:#ffebe9,stroke:#cf222e,color:#1f2328
+    classDef good fill:#dafbe1,stroke:#1a7f37,color:#1f2328
+    class stock bad
+    class gem good
+```
+
+Rails resolves `remote_ip` by walking `X-Forwarded-For` right-to-left, discarding entries it recognizes as *trusted* proxies. A Google front-end address is public and appears in no trusted-proxy list, so the walk stops there and reports it as the client. Every request then looks like it came from the same handful of Google addresses — which quietly breaks rate limiting, IP allowlists, geolocation, and audit trails.
 
 Fastly sets `Fastly-Client-IP` to the end user's address. In this architecture it is the only trustworthy source, and this gem's entire job is to make Rails use it.
 
