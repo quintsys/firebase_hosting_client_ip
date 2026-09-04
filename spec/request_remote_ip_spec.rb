@@ -3,90 +3,78 @@
 require "spec_helper"
 require "rails"
 require "action_dispatch"
-require_relative "../lib/firebase_hosting_client_ip/middleware"
 
+# Exercises the real middleware ordering the railtie produces:
+#
+#   ActionDispatch::RemoteIp -> FirebaseHostingClientIp::Middleware -> app
+#
+# ActionDispatch::RemoteIp installs a lazy GetIp object at
+# env["action_dispatch.remote_ip"]; this gem replaces it. The app builds a
+# fresh ActionDispatch::Request, exactly as a controller would.
 RSpec.describe "request.remote_ip integration" do
-  let(:app) { ->(_env) { [200, {}, ["OK"]] } }
-  let(:middleware) { FirebaseHostingClientIp::Middleware.new(app) }
+  # The peer address a Cloud Run container sees, plus an X-Forwarded-For whose
+  # right-most entry is a Google front-end address. Rails walks that header
+  # right-to-left discarding *trusted* proxies, and a GFE address is public,
+  # so stock Rails stops at 34.96.0.1 and reports it as the client.
+  let(:remote_addr) { "169.254.1.1" }
+  let(:forwarded_for) { "203.0.113.99, 34.96.0.1" }
+  let(:gfe_ip) { "34.96.0.1" }
 
-  def make_request(env_overrides = {})
-    env = Rack::MockRequest.env_for("/", env_overrides)
-    middleware.call(env)
+  let(:app) do
+    lambda do |env|
+      request = ActionDispatch::Request.new(env)
+      [200, {}, [request.remote_ip.to_s]]
+    end
+  end
+
+  let(:stack) do
+    ActionDispatch::RemoteIp.new(FirebaseHostingClientIp::Middleware.new(app))
+  end
+
+  def request_for(headers = {})
+    env = Rack::MockRequest.env_for(
+      "/",
+      { "REMOTE_ADDR" => remote_addr, "HTTP_X_FORWARDED_FOR" => forwarded_for }
+        .merge(headers)
+    )
+    stack.call(env)
     ActionDispatch::Request.new(env)
   end
 
-  describe "request.remote_ip behavior" do
-    it "returns HTTP_FASTLY_CLIENT_IP when present" do
-      request = make_request(
-        "HTTP_FASTLY_CLIENT_IP" => "203.0.113.1",
-        "HTTP_X_FORWARDED_FOR" => "198.51.100.1, 198.51.100.2",
-        "REMOTE_ADDR" => "127.0.0.1"
-      )
-      expect(request.remote_ip).to eq("203.0.113.1")
+  context "when Fastly-Client-IP is present" do
+    it "makes request.remote_ip return the client IP" do
+      request = request_for("HTTP_FASTLY_CLIENT_IP" => "198.51.100.7")
+      expect(request.remote_ip).to eq("198.51.100.7")
     end
 
-    it "returns left-most IP from HTTP_X_FORWARDED_FOR when HTTP_FASTLY_CLIENT_IP is absent" do
-      request = make_request(
-        "HTTP_X_FORWARDED_FOR" => "198.51.100.1, 198.51.100.2",
-        "REMOTE_ADDR" => "127.0.0.1"
-      )
-      expect(request.remote_ip).to eq("198.51.100.1")
+    it "leaves request.ip reporting the real peer address" do
+      request = request_for("HTTP_FASTLY_CLIENT_IP" => "198.51.100.7")
+      expect(request.ip).to eq(remote_addr)
     end
 
-    it "returns REMOTE_ADDR when no headers are present" do
-      request = make_request(
-        "REMOTE_ADDR" => "10.0.0.1"
-      )
-      expect(request.remote_ip).to eq("10.0.0.1")
+    it "leaves REMOTE_ADDR untouched" do
+      request = request_for("HTTP_FASTLY_CLIENT_IP" => "198.51.100.7")
+      expect(request.env["REMOTE_ADDR"]).to eq(remote_addr)
     end
 
-    it "handles multiple IPs in X-Forwarded-For correctly" do
-      request = make_request(
-        "HTTP_X_FORWARDED_FOR" => "192.0.2.1, 192.0.2.2, 192.0.2.3",
-        "REMOTE_ADDR" => "127.0.0.1"
-      )
-      expect(request.remote_ip).to eq("192.0.2.1")
+    it "returns an IPv6 client IP with the header's own spelling" do
+      expanded = "2001:0db8:0000:0000:0000:0000:0000:0042"
+      request = request_for("HTTP_FASTLY_CLIENT_IP" => expanded)
+      expect(request.remote_ip).to eq(expanded)
+    end
+  end
+
+  context "when Fastly-Client-IP is absent" do
+    # This documents the problem the gem exists to solve: without the trusted
+    # header, Rails reports a Google address as the client. The gem declines
+    # to invent a better-looking answer.
+    it "falls back to Rails' own value by default" do
+      expect(request_for.remote_ip).to eq(gfe_ip)
     end
 
-    it "handles whitespace in headers" do
-      request = make_request(
-        "HTTP_X_FORWARDED_FOR" => "  203.0.113.1  ,  203.0.113.2  ",
-        "REMOTE_ADDR" => "127.0.0.1"
-      )
-      expect(request.remote_ip).to eq("203.0.113.1")
-    end
-
-    it "falls back to REMOTE_ADDR when headers are empty" do
-      request = make_request(
-        "HTTP_FASTLY_CLIENT_IP" => "",
-        "HTTP_X_FORWARDED_FOR" => "",
-        "REMOTE_ADDR" => "10.0.0.1"
-      )
-      expect(request.remote_ip).to eq("10.0.0.1")
-    end
-
-    it "handles Firebase Hosting proxy chain scenario" do
-      request = make_request(
-        "REMOTE_ADDR" => "157.232.1.1",
-        "HTTP_X_FORWARDED_FOR" => "203.0.113.1, 157.232.1.1"
-      )
-      expect(request.remote_ip).to eq("203.0.113.1")
-    end
-
-    it "handles Fastly-fronted Firebase Hosting scenario" do
-      request = make_request(
-        "REMOTE_ADDR" => "157.232.1.1",
-        "HTTP_FASTLY_CLIENT_IP" => "203.0.113.1",
-        "HTTP_X_FORWARDED_FOR" => "203.0.113.1, 157.232.1.1"
-      )
-      expect(request.remote_ip).to eq("203.0.113.1")
-    end
-
-    it "does not break default Rails behavior when middleware is present" do
-      request = make_request(
-        "REMOTE_ADDR" => "10.0.0.1"
-      )
-      expect(request.remote_ip).to eq("10.0.0.1")
+    it "returns the configured sentinel instead when one is set" do
+      FirebaseHostingClientIp.config.missing_header_fallback = "0.0.0.0"
+      expect(request_for.remote_ip).to eq("0.0.0.0")
     end
   end
 end

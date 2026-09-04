@@ -1,4 +1,26 @@
 module FirebaseHostingClientIp
   VERSION: String
-  # See the writing guide of rbs: https://github.com/ruby/rbs#guides
+
+  def self.config: () -> Configuration
+  def self.configure: () { (Configuration) -> void } -> void
+  def self.reset_configuration!: () -> Configuration
+
+  class Configuration
+    PASSTHROUGH: Symbol
+
+    attr_reader missing_header_fallback: (:passthrough | String)
+    def missing_header_fallback=: ((:passthrough | String) value) -> (:passthrough | String)
+  end
+
+  class Middleware
+    REMOTE_IP_KEY: String
+    HEADER: String
+    DISALLOWED: Regexp
+
+    def initialize: (untyped app) -> void
+    def call: (Hash[String, untyped] env) -> untyped
+
+    private
+    def validated_fastly_ip: (Hash[String, untyped] env) -> String?
+  end
 end

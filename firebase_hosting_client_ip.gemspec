@@ -8,10 +8,11 @@ Gem::Specification.new do |spec|
   spec.authors = ["Erich N Quintero"]
   spec.email = ["qbantek@gmail.com"]
 
-  spec.summary = "Rails middleware to normalize client IP behind Firebase Hosting"
-  spec.description = "Provides a Rails middleware that resolves the correct client IP when " \
-                     "an application is deployed behind Firebase Hosting, using a heuristic " \
-                     "precedence of headers."
+  spec.summary = "Rails middleware that makes request.remote_ip trust Fastly-Client-IP"
+  spec.description = "Makes request.remote_ip return the client IP reported by Firebase " \
+                     "Hosting's Fastly-Client-IP header, the only trustworthy source behind " \
+                     "Firebase Hosting. Leaves REMOTE_ADDR intact and never infers the " \
+                     "client from X-Forwarded-For."
   spec.homepage = "https://github.com/quintsys/firebase_hosting_client_ip"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2.0"
