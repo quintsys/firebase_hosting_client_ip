@@ -8,8 +8,8 @@ module FirebaseHostingClientIp
   class Configuration
     PASSTHROUGH: Symbol
 
-    attr_reader missing_header_fallback: (Symbol | String)
-    def missing_header_fallback=: ((Symbol | String) value) -> (Symbol | String)
+    attr_reader missing_header_fallback: (:passthrough | String)
+    def missing_header_fallback=: ((:passthrough | String) value) -> (:passthrough | String)
   end
 
   class Middleware

@@ -109,14 +109,29 @@ These are all treated as if the header were missing:
 
 ## Security
 
-**This middleware trusts an HTTP header.** `Fastly-Client-IP` can be forged by anyone who can reach your application directly.
+**This middleware trusts an HTTP header, and that header is not cryptographically protected.**
 
-It is safe only when:
+Two separate attacks matter, and blocking one does not block the other:
 
-- your application sits behind Firebase Hosting, and
-- direct access to the origin is blocked (e.g. Cloud Run ingress restricted to internal + load balancer traffic).
+1. **Direct requests to the origin.** Anyone who can reach your Cloud Run service without going through Firebase Hosting can set `Fastly-Client-IP` to anything. Restrict ingress (internal + load balancer only) so this is not possible.
+2. **Requests through Firebase Hosting carrying a forged header.** Whether the CDN overwrites a client-supplied `Fastly-Client-IP` or forwards it unchanged is not documented by Firebase, and Fastly's own behavior for this header depends on edge configuration you do not control. **Locking down origin ingress does not protect you here** — the forged header travels the trusted path.
 
-Do not use it if your origin is reachable from the internet, or if you need strict guarantees about IP authenticity.
+Verify the second one against your own deployment before relying on this for anything protective:
+
+```bash
+curl -H 'Fastly-Client-IP: 192.0.2.123' https://your-app.example.com/some-endpoint
+```
+
+Then check what `request.remote_ip` recorded. If it is `192.0.2.123`, the header is client-spoofable through the CDN on your setup.
+
+### Choose based on what you use the IP for
+
+| Use | Spoofable header acceptable? |
+|---|---|
+| Logging, analytics, geolocation, personalization | **Yes.** A wrong IP in a subset of requests is better than a Google address in all of them. |
+| IP allowlists, rate limiting, fraud signals, audit records used as evidence | **No.** An attacker chooses the value, which means they choose the allowlist entry they match or the bucket they exhaust. |
+
+The gem reports the best available answer; it cannot make that answer trustworthy. `missing_header_fallback` does not help here either — a forged header is *present and valid*, so it never reaches the fallback path.
 
 ## What this gem does not cover
 
