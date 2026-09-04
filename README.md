@@ -168,7 +168,42 @@ Three things to weigh before choosing it:
 - **Trust the narrowest range you can.** Trusting all of `cloud.json` means trusting every Google Cloud customer. Anyone with a GCP VM can then send a request with a forged `X-Forwarded-For`, have their own (trusted) address appended behind it, and be attributed the value they chose. Trusting only the specific front-end ranges avoids that.
 - **The ranges move.** Vendoring the list means it goes stale; fetching it at boot makes startup depend on a network call. Either is a maintenance cost this gem does not have.
 
-The trade is roughly: this gem reads one header and is done, but depends on Fastly setting it; the `trusted_proxies` route uses only stock Rails, but depends on the client surviving in `X-Forwarded-For` and on you keeping a range list current. Neither is more resistant to spoofing than the other — both read a client-settable header.
+The trade is roughly: this gem reads one header and is done, but depends on Fastly setting it; the `trusted_proxies` route uses only stock Rails, but depends on the client surviving in `X-Forwarded-For` and on you keeping a range list current.
+
+### Using both
+
+They compose, and each covers the other's failure mode. Configure `trusted_proxies` *and* install the gem, leaving `missing_header_fallback` at `:passthrough`:
+
+```
+Fastly-Client-IP present : 198.51.100.7   ← the gem answers
+Fastly-Client-IP absent  : 203.0.113.99   ← Rails finds the client via ranges
+```
+
+The fallback path stops meaning "you get a Google address" and starts meaning "you get the client according to `X-Forwarded-For`". This is the strongest configuration for accuracy, and it costs one `config.action_dispatch.trusted_proxies` line. Note it only works with `:passthrough` — a sentinel would override the improved fallback.
+
+### Which wins, and when that is the wrong choice
+
+The gem takes precedence: it runs after `ActionDispatch::RemoteIp` and replaces whatever Rails computed. That is right for accuracy — a header set by the hop that actually saw the client beats inferring the client by eliminating known infrastructure from a list that changes daily.
+
+**It is the wrong precedence if you are defending against forgery.** The two approaches do not degrade the same way under attack. Given a request that forges *both* headers:
+
+```
+X-Forwarded-For: 1.2.3.4, 203.0.113.99, 151.101.1.1, 34.96.0.1
+Fastly-Client-IP: 1.2.3.4
+
+trusted_proxies only : 203.0.113.99   ← the real client
+with this gem        : 1.2.3.4        ← the attacker's choice
+```
+
+`X-Forwarded-For` resists this because every real proxy appends the peer it saw, so the true client always lands to the *right* of anything the client invented, and Rails takes the right-most untrusted entry. A forged prefix is simply skipped. `Fastly-Client-IP` carries no such structure: it is one value, and if the CDN does not overwrite a client-supplied one, it is whatever the client said.
+
+So installing this gem can *reduce* spoof resistance compared with a correctly configured `trusted_proxies` setup. If you use the client IP for access control rather than observability, prefer `trusted_proxies` — trusting both the CDN and Google hops, using Fastly's published list at `https://api.fastly.com/public-ip-list` alongside Google's — and consider not installing this gem at all. The two precedence orders are already available to you: install it, and the header wins; don't, and the `X-Forwarded-For` walk wins. That is why there is no option to invert it.
+
+All of this assumes the client actually survives in `X-Forwarded-For` behind Firebase Hosting, which is undocumented. The `curl` in the [Security](#security) section answers that and the spoofing question in the same request — run it before choosing.
+
+### Why the gem does not do the range filtering itself
+
+Because Rails already does it, and the data is not the gem's to ship. Google republishes those prefixes daily; a gem released monthly cannot track them, so it would either vendor a list that goes stale — silently returning a Google address again, exactly the bug this gem exists to fix — or fetch at boot and make your application's startup depend on a network call. `trusted_proxies` is a first-class Rails setting and the right home for it.
 
 ## Upgrading from 0.x
 
