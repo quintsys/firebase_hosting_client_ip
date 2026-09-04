@@ -2,114 +2,121 @@
 
 [![Gem Version](https://badge.fury.io/rb/firebase_hosting_client_ip.svg)](https://badge.fury.io/rb/firebase_hosting_client_ip)
 
-A Rails middleware gem that normalizes client IP addresses when your Rails application is deployed behind Firebase Hosting.
+Rails middleware that makes `request.remote_ip` return the real client IP when your application is deployed behind Firebase Hosting.
 
 ## Problem
 
-When a Rails application is deployed behind Firebase Hosting, the original client IP address is obscured by proxy layers. Rails' default `ActionDispatch::RemoteIp` middleware may not correctly identify the true client IP due to the specific header precedence used by Firebase Hosting's infrastructure.
+Firebase Hosting fronts your application with Fastly (undocumented, not configurable — every Firebase Hosting site gets it). When the origin is Cloud Run, the request reaches your container through Google's front end, and the values Rails derives on its own are wrong:
 
-This gem provides a middleware that implements a heuristic precedence order specifically designed for Firebase Hosting's proxy chain, ensuring `request.remote_ip` returns the correct client IP address.
+- `REMOTE_ADDR` is the address of the proxy that connected to your container, not the client.
+- `X-Forwarded-For` has Google's front-end address appended. Rails walks that header right-to-left discarding *trusted* proxies, but a Google front-end address is public and appears in no trusted-proxy list — so `request.remote_ip` stops there and reports it as the client.
 
-## Supported Architecture
+Fastly sets `Fastly-Client-IP` to the end user's address. In this architecture it is the only trustworthy source, and this gem's entire job is to make Rails use it.
 
-This gem is designed for the following architecture:
+## What it does
 
-```
-Client → Firebase Hosting → Rails Application
-```
+One thing:
 
-Firebase Hosting uses Fastly CDN behind the scenes (this is not a documented feature and is not configurable - all Firebase Hosting users get Fastly CDN automatically). The middleware handles the `HTTP_FASTLY_CLIENT_IP` header that Fastly provides, as well as the `HTTP_X_FORWARDED_FOR` header from the proxy chain.
+> If `Fastly-Client-IP` is present and contains a valid IP address, `request.remote_ip` returns it. Otherwise the gem gets out of the way.
 
-## Intended Use Cases
+- **`REMOTE_ADDR` is never modified.** `request.ip` keeps reporting the actual peer address; `request.remote_ip` reports the client. They describe different layers, and conflating them was the design mistake in 0.x.
+- **`X-Forwarded-For` is never consulted.** It cannot distinguish the client from Google's infrastructure, and it is attacker-controlled if your service can be reached directly.
+- **IP values are validated, not rewritten.** The header's own spelling is passed through — an expanded IPv6 address is not silently compressed.
 
-This middleware is useful for:
-
-- **Logging**: Accurately log client IP addresses for audit trails and debugging
-- **Analytics**: Track user locations and behavior based on correct IP geolocation
-- **User Experience**: Personalize content based on user location
-- **Security**: Implement IP-based rate limiting or access controls
-
-## Security Disclaimer
-
-**IMPORTANT**: This middleware trusts HTTP headers (`HTTP_FASTLY_CLIENT_IP` and `HTTP_X_FORWARDED_FOR`) to determine the client IP address. These headers can be spoofed by clients if they have direct access to your application.
-
-**This middleware is only safe to use when:**
-- Your Rails application is deployed behind Firebase Hosting (or a trusted proxy/CDN)
-- Direct access to your application is blocked (e.g., via firewall rules)
-- You trust the proxy infrastructure to set these headers correctly
-
-**Do not use this middleware if:**
-- Your application is directly accessible from the internet
-- You cannot guarantee that requests pass through Firebase Hosting
-- You need strict security guarantees about IP address authenticity
-
-For production deployments, ensure your application only accepts traffic through Firebase Hosting and cannot be accessed directly.
+The middleware is inserted automatically after `ActionDispatch::RemoteIp`, where it replaces the value Rails computed. No application changes are required, and anything reading `request.remote_ip` — your code, Rack::Attack, audit logging, rate limiters — picks it up.
 
 ## Installation
 
-Add this line to your application's Gemfile:
-
 ```ruby
-gem 'firebase_hosting_client_ip'
+gem "firebase_hosting_client_ip"
 ```
 
-And then execute:
-
-```bash
-bundle install
-```
-
-## Requirements
-
-- Ruby >= 3.2.0
-- Rails >= 7.0 (Rails 7, Rails 8, and future versions are supported)
-
-The gem automatically works with whatever Rails version is specified in your application's Gemfile.
+Requires Ruby >= 3.2 and Rails >= 7.0.
 
 ## Usage
-
-The middleware is automatically loaded when Rails is detected. No additional configuration is required.
-
-The middleware is inserted into the Rails middleware stack after `ActionDispatch::RemoteIp`, ensuring proper precedence in the request processing chain.
-
-### Expected Behavior
-
-After the middleware processes a request, `request.remote_ip` will return the normalized client IP address according to the following precedence:
-
-1. `HTTP_FASTLY_CLIENT_IP` header (if present and not empty)
-2. Left-most value from `HTTP_X_FORWARDED_FOR` header (if present and not empty)
-3. `REMOTE_ADDR` (the direct connection address)
-
-### Example
 
 ```ruby
 class ApplicationController < ActionController::Base
   def index
-    # This will return the correct client IP even behind Firebase Hosting
-    client_ip = request.remote_ip
-    Rails.logger.info "Request from: #{client_ip}"
+    Rails.logger.info "Request from: #{request.remote_ip}"
   end
 end
 ```
 
-### Testing the Middleware
+### Configuration
 
-You can verify the middleware is working by checking the `request.remote_ip` value in your controllers or by inspecting the `REMOTE_ADDR` environment variable in your middleware stack.
+There is one option, and it controls a single decision: when there is no trustworthy Fastly IP, does Rails decide, or does your application get a value it can recognize as "unknown"?
+
+```ruby
+# config/initializers/firebase_hosting_client_ip.rb
+FirebaseHostingClientIp.configure do |config|
+  # :passthrough (default) - leave Rails' own value alone. Behind Cloud Run
+  #   that is typically a Google front-end address, not your client.
+  # A String - written to request.remote_ip verbatim, so the application can
+  #   detect it and act accordingly (e.g. fail closed on IP-gated actions).
+  config.missing_header_fallback = "0.0.0.0"
+end
+```
+
+Any String is accepted, including `""`; the gem imposes no meaning on the sentinel — that is your application's decision. Non-String values other than `:passthrough` raise `ArgumentError`, because `request.remote_ip` coerces with `to_s` and a `nil` would silently fall back to Rack's own calculation.
+
+If you do anything security-adjacent with `request.remote_ip` — allowlisting, rate limiting, audit trails — prefer a sentinel. Passthrough means a Google address flows into that logic looking exactly like a real client.
+
+### A header is considered valid only if it is a bare host address
+
+These are all treated as if the header were missing:
+
+| Value | Why |
+|---|---|
+| `""`, `"   "` | empty |
+| `"not-an-ip"` | unparseable |
+| `"192.0.2.1/24"`, `"2001:db8::1/64"` | a range is not a client address |
+| `"[2001:db8::42]"` | bracketed form |
+| `"2001:db8::42%eth0"` | zone identifier |
+
+`IPAddr.new` accepts several of these, so the gem rejects them explicitly rather than passing them to Rails, where they would raise in any consumer that parses the value.
+
+## Security
+
+**This middleware trusts an HTTP header.** `Fastly-Client-IP` can be forged by anyone who can reach your application directly.
+
+It is safe only when:
+
+- your application sits behind Firebase Hosting, and
+- direct access to the origin is blocked (e.g. Cloud Run ingress restricted to internal + load balancer traffic).
+
+Do not use it if your origin is reachable from the internet, or if you need strict guarantees about IP authenticity.
+
+## What this gem does not cover
+
+**`request.ip`** is Rack-level and derives from `REMOTE_ADDR`, which this gem deliberately leaves intact. Anything that must see the client IP should read `request.remote_ip`. For a Rack-level consumer that only has `env`:
+
+```ruby
+env["action_dispatch.remote_ip"].to_s
+```
+
+**IPv6.** Fastly reports the client's real address, which is frequently IPv6. The gem passes it through untouched. If your application matches against IPv4-only data — allowlists, geo databases, existing audit records — deciding what to do about that is application policy, not something a middleware should guess at.
+
+## Upgrading from 0.x
+
+Breaking changes in 1.0:
+
+- **`REMOTE_ADDR` is no longer overwritten.** If you relied on reading the client IP from `REMOTE_ADDR` or `request.ip`, switch to `request.remote_ip`.
+- **The `X-Forwarded-For` fallback is gone.** When `Fastly-Client-IP` is absent, 0.x returned the left-most `X-Forwarded-For` entry — a value that is either Google's infrastructure or attacker-supplied. 1.0 returns Rails' own value, or your configured sentinel.
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
-
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+```bash
+bin/setup
+bundle exec rspec
+bundle exec rubocop
+bundle exec rake        # spec + rubocop
+```
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/quintsys/firebase_hosting_client_ip. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [code of conduct](https://github.com/quintsys/firebase_hosting_client_ip/blob/master/CODE_OF_CONDUCT.md).
+Bug reports and pull requests are welcome at https://github.com/quintsys/firebase_hosting_client_ip. Contributors are expected to adhere to the [code of conduct](https://github.com/quintsys/firebase_hosting_client_ip/blob/master/CODE_OF_CONDUCT.md).
 
 ## License
 
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
-
-## Code of Conduct
-
-Everyone interacting in the FirebaseHostingClientIp project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/quintsys/firebase_hosting_client_ip/blob/master/CODE_OF_CONDUCT.md).
+MIT. See [LICENSE.txt](LICENSE.txt).
